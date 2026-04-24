@@ -1,19 +1,40 @@
 import flet as ft
-from supabase import create_client, Client
 import re
 import base64
 import requests
 from datetime import datetime
 import textwrap
-from reportlab.pdfgen import canvas
-from reportlab.lib.pagesizes import A4
+import traceback
+import os
 
-# --- CONEXÃO SUPABASE ---
-URL = "https://rjcgswtifmdabqsfwifg.supabase.co"
-KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJqY2dzd3RpZm1kYWJxc2Z3aWZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU0MjMxOTQsImV4cCI6MjA5MDk5OTE5NH0.7qtIV7a44s-38SrZ_ODYepiy-UugcZPA0Yp006jmVs0"
-supabase: Client = create_client(URL, KEY)
+# === ESCUDO ANTI TELA BRANCA ===
+# Todas as bibliotecas críticas que podem travar o Android ficam aqui.
+# Se alguma der pau, o erro é capturado em vez da tela ficar branca!
+CRITICAL_ERROR = None
+try:
+    from supabase import create_client, Client
+    from fpdf import FPDF
+
+    URL = "https://rjcgswtifmdabqsfwifg.supabase.co"
+    KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJqY2dzd3RpZm1kYWJxc2Z3aWZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU0MjMxOTQsImV4cCI6MjA5MDk5OTE5NH0.7qtIV7a44s-38SrZ_ODYepiy-UugcZPA0Yp006jmVs0"
+    supabase: Client = create_client(URL, KEY)
+except Exception as e:
+    CRITICAL_ERROR = f"Erro de Importação/Banco:\n{traceback.format_exc()}"
 
 def main(page: ft.Page):
+    # --- SE O ESCUDO PEGAR ALGO, MOSTRA O ERRO NA TELA! ---
+    if CRITICAL_ERROR:
+        page.add(
+            ft.Column([
+                ft.Icon(ft.icons.WARNING_AMBER_ROUNDED, color="red", size=80),
+                ft.Text("Eita, Ap! Deu um Erro Fatal!", color="red", size=24, weight=ft.FontWeight.BOLD),
+                ft.Text("O Android barrou alguma coisa. Mande esse erro pra Lumi:", color="black"),
+                ft.TextField(value=CRITICAL_ERROR, multiline=True, read_only=True, min_lines=15, border_color="red", color="red")
+            ], alignment=ft.MainAxisAlignment.CENTER, horizontal_alignment=ft.CrossAxisAlignment.CENTER)
+        )
+        return
+
+    # --- INÍCIO NORMAL DO SISTEMA ---
     page.title = "Diário da Joana"
     page.theme_mode = ft.ThemeMode.LIGHT
     page.bgcolor = "#F3E5F5"
@@ -31,63 +52,75 @@ def main(page: ft.Page):
         page.snack_bar.open = True
         page.update()
 
-    # --- GERADOR DE PDFs ---
+    # --- GERADOR DE PDFs (AGORA COM FPDF2 PARA RODAR NO CELULAR) ---
     def gerar_pdf_relatorio(nome_aluno, texto_relatorio):
         try:
             nome_arquivo = f"Relatorio_{nome_aluno.replace(' ', '_')}.pdf"
-            c = canvas.Canvas(nome_arquivo, pagesize=A4)
-            c.setFont("Helvetica-Bold", 16)
-            c.drawString(50, 800, "Diário da Joana - E.E.F. DR. CHAGAS FEIJÃO")
-            c.setFont("Helvetica-Bold", 14)
-            c.drawString(50, 770, f"Relatório do Aluno: {nome_aluno}")
-            c.setFont("Helvetica", 12)
-            y = 740
+            pdf = FPDF()
+            pdf.add_page()
+            pdf.set_font("helvetica", style="B", size=16)
+            pdf.cell(0, 10, text="Diário da Joana - E.E.F. DR. CHAGAS FEIJÃO", new_x="LMARGIN", new_y="NEXT")
+            pdf.set_font("helvetica", style="B", size=14)
+            pdf.cell(0, 10, text=f"Relatório do Aluno: {nome_aluno}", new_x="LMARGIN", new_y="NEXT")
+            pdf.ln(5)
+            pdf.set_font("helvetica", size=12)
+
             for linha_orig in texto_relatorio.split('\n'):
-                linhas_quebradas = textwrap.wrap(linha_orig, width=80)
-                if not linhas_quebradas: y -= 20
-                for linha in linhas_quebradas:
-                    c.drawString(50, y, linha)
-                    y -= 20
-                    if y < 50:
-                        c.showPage()
-                        c.setFont("Helvetica", 12)
-                        y = 800
-            c.save()
-            mostrar_mensagem(f"PDF salvo no PC: {nome_arquivo}")
+                pdf.multi_cell(0, 8, text=linha_orig)
+                pdf.ln(2)
+
+            try:
+                # Tenta salvar direto na pasta de Downloads do Android
+                caminho = f"/storage/emulated/0/Download/{nome_arquivo}"
+                pdf.output(caminho)
+            except:
+                caminho = nome_arquivo
+                pdf.output(caminho)
+            
+            mostrar_mensagem(f"PDF salvo na pasta Downloads: {nome_arquivo}")
         except Exception as e:
-            mostrar_mensagem("Erro ao gerar PDF", ft.colors.RED_700)
+            mostrar_mensagem(f"Erro ao gerar PDF", ft.colors.RED_700)
+            print(e)
 
     def gerar_pdf_boletim(nome_aluno, dados_notas):
         try:
             nome_arquivo = f"Boletim_{nome_aluno.replace(' ', '_')}.pdf"
-            c = canvas.Canvas(nome_arquivo, pagesize=A4)
-            c.setFont("Helvetica-Bold", 16)
-            c.drawString(50, 800, "BOLETIM ESCOLAR - E.E.F. DR. CHAGAS FEIJÃO")
-            c.setFont("Helvetica-Bold", 14)
-            c.drawString(50, 770, f"Aluno(a): {nome_aluno}")
-            c.setFont("Helvetica", 12)
-            y = 730
-            c.drawString(50, y, "Matéria")
-            c.drawString(200, y, "1º Bim")
-            c.drawString(260, y, "2º Bim")
-            c.drawString(320, y, "3º Bim")
-            c.drawString(380, y, "4º Bim")
-            c.drawString(440, y, "Média")
-            y -= 20
-            c.line(50, y+15, 500, y+15)
+            pdf = FPDF()
+            pdf.add_page()
+            pdf.set_font("helvetica", style="B", size=16)
+            pdf.cell(0, 10, text="BOLETIM ESCOLAR - E.E.F. DR. CHAGAS FEIJÃO", new_x="LMARGIN", new_y="NEXT")
+            pdf.set_font("helvetica", style="B", size=14)
+            pdf.cell(0, 10, text=f"Aluno(a): {nome_aluno}", new_x="LMARGIN", new_y="NEXT")
+            pdf.ln(5)
+
+            pdf.set_font("helvetica", style="B", size=12)
+            pdf.cell(60, 10, "Matéria", border=1)
+            pdf.cell(25, 10, "1 Bim", border=1, align='C')
+            pdf.cell(25, 10, "2 Bim", border=1, align='C')
+            pdf.cell(25, 10, "3 Bim", border=1, align='C')
+            pdf.cell(25, 10, "4 Bim", border=1, align='C')
+            pdf.cell(30, 10, "Média", border=1, align='C', new_x="LMARGIN", new_y="NEXT")
+
+            pdf.set_font("helvetica", size=12)
             for nota in dados_notas:
-                nome_mat = str(nota['materia'])[:20]
-                c.drawString(50, y, nome_mat)
-                c.drawString(200, y, str(nota['n1']))
-                c.drawString(260, y, str(nota['n2']))
-                c.drawString(320, y, str(nota['n3']))
-                c.drawString(380, y, str(nota['n4']))
-                c.drawString(440, y, str(nota['media']))
-                y -= 20
-            c.save()
-            mostrar_mensagem(f"Boletim salvo no PC: {nome_arquivo}")
+                pdf.cell(60, 10, str(nota['materia'])[:20], border=1)
+                pdf.cell(25, 10, str(nota['n1']), border=1, align='C')
+                pdf.cell(25, 10, str(nota['n2']), border=1, align='C')
+                pdf.cell(25, 10, str(nota['n3']), border=1, align='C')
+                pdf.cell(25, 10, str(nota['n4']), border=1, align='C')
+                pdf.cell(30, 10, str(nota['media']), border=1, align='C', new_x="LMARGIN", new_y="NEXT")
+
+            try:
+                caminho = f"/storage/emulated/0/Download/{nome_arquivo}"
+                pdf.output(caminho)
+            except:
+                caminho = nome_arquivo
+                pdf.output(caminho)
+                
+            mostrar_mensagem(f"Boletim salvo nos Downloads: {nome_arquivo}")
         except Exception as e:
-            mostrar_mensagem("Erro ao gerar PDF", ft.colors.RED_700)
+            mostrar_mensagem(f"Erro PDF", ft.colors.RED_700)
+            print(e)
 
     # --- INTEGRAÇÃO IMGBB (SEPARADA PARA ALUNO E JOANA) ---
     url_foto_aluno_temp = [""]
@@ -129,7 +162,7 @@ def main(page: ft.Page):
     picker_aluno = ft.FilePicker(on_result=foto_aluno_selecionada)
     page.overlay.extend([picker_joana, picker_aluno])
 
-    # --- MÁSCARAS (O MOTOR QUE EU TINHA ESQUECIDO KKK) ---
+    # --- MÁSCARAS ---
     def formatar_data_ao_sair(e):
         v = re.sub(r'\D', '', e.control.value)
         if len(v) == 8: e.control.value = f"{v[:2]}/{v[2:4]}/{v[4:]}"
@@ -161,7 +194,6 @@ def main(page: ft.Page):
     edit_turma_aluno = ft.Dropdown(label="Turma Atual", border_color=ROXO_FORTE)
     edit_nome_aluno = ft.TextField(label="Nome", border_color=ROXO_FORTE)
     edit_mae_aluno = ft.TextField(label="Nome da Mãe", border_color=ROXO_FORTE)
-    # AGORA COM AS MÁSCARAS APLICADAS TAMBÉM NA EDIÇÃO!
     edit_nasc_aluno = ft.TextField(label="Data Nasc.", border_color=ROXO_FORTE, on_blur=formatar_data_ao_sair)
     edit_tel_aluno = ft.TextField(label="Telefone", border_color=ROXO_FORTE, on_blur=formatar_telefone_ao_sair)
     edit_foto_aluno_url = [None]

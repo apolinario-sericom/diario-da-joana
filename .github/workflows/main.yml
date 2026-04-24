@@ -2,7 +2,7 @@ name: Gerar APK Diário da Joana
 
 on:
   push:
-    branches: [ "main" ] # Se a sua branch principal tiver outro nome (como master), mude aqui
+    branches: [ "main" ]
 
 jobs:
   build:
@@ -22,14 +22,16 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Instalar o Flet
-        run: pip install flet
+      - name: Instalar Dependências
+        run: pip install flet requests
 
-      - name: Compilar o APK
-        run: flet build apk
+      - name: Compilar o APK Forçando Pacotes
+        # A dica da Lumi da Sericom aplicada aqui:
+        run: flet build apk --include-packages requests
 
       - name: Salvar o APK final
         uses: actions/upload-artifact@v4
         with:
           name: Diario-da-Joana-APK
           path: build/apk/
+          

@@ -22,12 +22,8 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Instalar Dependências
-        run: pip install flet requests
-
-      - name: Compilar o APK Forçando Pacotes
-        # A dica da Lumi da Sericom aplicada aqui:
-        run: flet build apk --include-packages requests
+      - name: Compilar o APK
+        run: flet build apk
 
       - name: Salvar o APK final
         uses: actions/upload-artifact@v4

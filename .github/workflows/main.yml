@@ -33,11 +33,15 @@ jobs:
       - name: 📜 Assinando a Burocracia do Android
         run: yes | flutter doctor --android-licenses
 
+      - name: 🧹 Limpeza de Primavera
+        run: flutter clean
+
       - name: 📦 Instalando as peças da Joana
         run: pip install flet==0.25.2 requests fpdf
 
       - name: 🚀 Construindo o Aplicativo
-        run: flet build apk . --verbose
+        # Adicionei o --release para garantir que ele foque na versão final
+        run: flet build apk . --verbose --release
 
       - name: 📤 Salvando o APK Pronto
         uses: actions/upload-artifact@v4

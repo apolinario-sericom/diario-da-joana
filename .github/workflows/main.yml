@@ -1,0 +1,35 @@
+name: Gerar APK Diário da Joana
+
+on:
+  push:
+    branches: [ "main" ] # Se a sua branch principal tiver outro nome (como master), mude aqui
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Baixar o código
+        uses: actions/checkout@v4
+
+      - name: Instalar o Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+
+      - name: Instalar o Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Instalar o Flet
+        run: pip install flet
+
+      - name: Compilar o APK
+        run: flet build apk
+
+      - name: Salvar o APK final
+        uses: actions/upload-artifact@v4
+        with:
+          name: Diario-da-Joana-APK
+          path: build/apk/

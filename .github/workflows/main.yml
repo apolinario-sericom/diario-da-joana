@@ -3,34 +3,42 @@ name: Gerar APK Diário da Joana
 on:
   push:
     branches: [ "main" ]
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Baixar o código
+      - name: 📥 Baixando o código
         uses: actions/checkout@v4
 
-      - name: Instalar o Flutter
-        uses: subosito/flutter-action@v2
-        with:
-          channel: 'stable'
-
-      - name: Instalar o Python
+      - name: 🐍 Configurando o Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
-      - name: Instalar Dependências
-        run: pip install flet requests
+      - name: ☕ Configurando o Motor Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
 
-      - name: Compilar o APK
-        run: flet build apk
+      - name: 🐦 Configurando o Flutter Seguro
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.24.3'
+          channel: 'stable'
 
-      - name: Salvar o APK final
+      - name: 📦 Instalando as peças da Joana
+        run: pip install flet==0.25.2 requests fpdf
+
+      - name: 🚀 Construindo o Aplicativo
+        run: flet build apk . --verbose
+
+      - name: 📤 Salvando o APK Pronto
         uses: actions/upload-artifact@v4
         with:
           name: Diario-da-Joana-APK
-          path: build/apk/
+          path: build/apk/**/*.apk
           

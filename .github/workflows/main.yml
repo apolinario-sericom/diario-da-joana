@@ -1,4 +1,4 @@
-name: Gerar APK Diário da Joana
+name: Gerar APK Diário da Sinara
 
 on:
   push:
@@ -36,16 +36,16 @@ jobs:
       - name: 🔍 Verificando os Arquivos
         run: ls -R
 
-      - name: 📦 Instalando as peças da Joana
-        # Trocamos fpdf por fpdf2 bem aqui:
+      - name: 📦 Instalando as peças do App
         run: pip install flet==0.25.2 requests fpdf2
 
       - name: 🚀 Construindo o Aplicativo (Padrão Sericom)
-        run: flet build apk . --verbose
+        # Adicionei o comando --product para cravar o nome "Diário da Sinara" no ícone!
+        run: flet build apk . --verbose --product "Diário da Sinara"
 
       - name: 📤 Salvando o APK Pronto!
         uses: actions/upload-artifact@v4
         with:
-          name: Diario-da-Joana-APK
+          name: Diario-da-Sinara-APK
           path: build/apk/**/*.apk
           

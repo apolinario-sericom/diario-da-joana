@@ -33,13 +33,14 @@ jobs:
       - name: 📜 Assinando a Burocracia do Android
         run: yes | flutter doctor --android-licenses
 
-      - name: 🔍 Verificando os Arquivos (Pente Fino)
+      - name: 🔍 Verificando os Arquivos
         run: ls -R
 
       - name: 📦 Instalando as peças da Joana
-        run: pip install flet==0.25.2 requests fpdf
+        # Trocamos fpdf por fpdf2 bem aqui:
+        run: pip install flet==0.25.2 requests fpdf2
 
-      - name: 🚀 Construindo o Aplicativo (Estilo Sericom)
+      - name: 🚀 Construindo o Aplicativo (Padrão Sericom)
         run: flet build apk . --verbose
 
       - name: 📤 Salvando o APK Pronto!

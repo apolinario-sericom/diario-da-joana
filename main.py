@@ -127,7 +127,7 @@ def main(page: ft.Page):
         page.overlay.extend([picker_joana, picker_aluno, picker_edit_aluno])
 
         # --- GERADOR DE PDFs (FPDF2) ---
-        def gerar_pdf_relatorio(nome_aluno, texto_relatorio):
+        def gerar_pdf_relatorio(nome_aluno, texto_relatorio, nome_turma=""):
             try:
                 from fpdf import FPDF
                 nome_arquivo = f"Relatorio_{nome_aluno.replace(' ', '_')}.pdf"
@@ -137,6 +137,7 @@ def main(page: ft.Page):
                 pdf.cell(0, 10, text="Diário da Joana - E.E.F. DR. CHAGAS FEIJÃO", new_x="LMARGIN", new_y="NEXT")
                 pdf.set_font("helvetica", style="B", size=14)
                 pdf.cell(0, 10, text=f"Relatório do Aluno: {nome_aluno}", new_x="LMARGIN", new_y="NEXT")
+                pdf.cell(0, 10, text=f"Turma: {nome_turma}", new_x="LMARGIN", new_y="NEXT")
                 pdf.ln(5)
                 pdf.set_font("helvetica", size=12)
 
@@ -154,7 +155,7 @@ def main(page: ft.Page):
             except Exception:
                 mostrar_mensagem("Erro ao criar PDF.", ft.colors.RED_700)
 
-        def gerar_pdf_boletim(nome_aluno, dados_notas):
+        def gerar_pdf_boletim(nome_aluno, dados_notas, nome_turma=""):
             try:
                 from fpdf import FPDF
                 nome_arquivo = f"Boletim_{nome_aluno.replace(' ', '_')}.pdf"
@@ -164,6 +165,7 @@ def main(page: ft.Page):
                 pdf.cell(0, 10, text="BOLETIM ESCOLAR - E.E.F. DR. CHAGAS FEIJÃO", new_x="LMARGIN", new_y="NEXT")
                 pdf.set_font("helvetica", style="B", size=14)
                 pdf.cell(0, 10, text=f"Aluno: {nome_aluno}", new_x="LMARGIN", new_y="NEXT")
+                pdf.cell(0, 10, text=f"Turma: {nome_turma}", new_x="LMARGIN", new_y="NEXT")
                 pdf.ln(5)
 
                 pdf.set_font("helvetica", style="B", size=10)
@@ -470,8 +472,17 @@ def main(page: ft.Page):
 
         def acao_gerar_pdf_relatorio(e):
             if not dropdown_aluno_relatorio.value: return
-            nome_aluno = next((opt.text for opt in dropdown_aluno_relatorio.options if opt.key == str(dropdown_aluno_relatorio.value)), "Aluno")
-            gerar_pdf_relatorio(nome_aluno, texto_relatorio.value)
+            id_a = int(dropdown_aluno_relatorio.value)
+            nome_aluno = next((opt.text for opt in dropdown_aluno_relatorio.options if opt.key == str(id_a)), "Aluno")
+            
+            # Buscar a turma do aluno
+            resp_vinc = db_get('joana_turma_alunos', f'id_aluno=eq.{id_a}')
+            nome_turma = "Não vinculada"
+            if resp_vinc:
+                resp_t = db_get('joana_turmas', f'id=eq.{resp_vinc[0]["id_turma"]}')
+                if resp_t: nome_turma = resp_t[0]['nome']
+                
+            gerar_pdf_relatorio(nome_aluno, texto_relatorio.value, nome_turma)
 
         def carregar_boletim_aluno(e):
             if not dropdown_aluno_boletim.value: return
@@ -495,7 +506,15 @@ def main(page: ft.Page):
             for n in resp_notas:
                 dados_pdf.append({'materia': materias.get(n['id_materia'], 'Desconhecida'), 'n1': n['nota1'], 'n2': n['nota2'], 'n3': n['nota3'], 'n4': n['nota4'], 'media': n['media']})
             nome_aluno = next((opt.text for opt in dropdown_aluno_boletim.options if opt.key == str(id_a)), "Aluno")
-            gerar_pdf_boletim(nome_aluno, dados_pdf)
+            
+            # Buscar a turma do aluno
+            resp_vinc = db_get('joana_turma_alunos', f'id_aluno=eq.{id_a}')
+            nome_turma = "Não vinculada"
+            if resp_vinc:
+                resp_t = db_get('joana_turmas', f'id=eq.{resp_vinc[0]["id_turma"]}')
+                if resp_t: nome_turma = resp_t[0]['nome']
+                
+            gerar_pdf_boletim(nome_aluno, dados_pdf, nome_turma)
 
         # --- CONSTRUÇÃO DAS TELAS DA INTERFACE ---
         input_nome_turma = ft.TextField(label="Nome", border_color=ROXO_FORTE, bgcolor=BRANCO)
@@ -519,7 +538,9 @@ def main(page: ft.Page):
         dropdown_turma_chamada = ft.Dropdown(label="Selecione a Turma", border_color=ROXO_FORTE, bgcolor=BRANCO, on_change=ao_mudar_turma_chamada)
         input_data_chamada = ft.TextField(label="Data", border_color=ROXO_FORTE, bgcolor=BRANCO, value=datetime.now().strftime("%d/%m/%Y"), on_change=aplicar_mascara_data)
         lista_chamada_alunos = ft.Column(scroll=ft.ScrollMode.AUTO, height=300, spacing=10)
-        tela_chamada = ft.Container(content=ft.Column([ft.Text("Fazer Chamada", size=24, weight=ft.FontWeight.BOLD, color=ROXO_FORTE), ft.Row([dropdown_turma_chamada, input_data_chamada], alignment=ft.MainAxisAlignment.CENTER), ft.ElevatedButton("Ver Histórico do Dia", icon=ft.icons.HISTORY, on_click=consultar_historico_chamada), ft.Divider(), lista_chamada_alunos, ft.ElevatedButton("Salvar Chamada", bgcolor="green700", color=BRANCO, width=300, on_click=acao_salvar_frequencia)], horizontal_alignment=ft.CrossAxisAlignment.CENTER), padding=20)
+        
+        # ALTERAÇÃO AQUI: Campos em uma coluna simples em vez de lado a lado para não cortar a data!
+        tela_chamada = ft.Container(content=ft.Column([ft.Text("Fazer Chamada", size=24, weight=ft.FontWeight.BOLD, color=ROXO_FORTE), dropdown_turma_chamada, input_data_chamada, ft.ElevatedButton("Ver Histórico do Dia", icon=ft.icons.HISTORY, on_click=consultar_historico_chamada), ft.Divider(), lista_chamada_alunos, ft.ElevatedButton("Salvar Chamada", bgcolor="green700", color=BRANCO, width=300, on_click=acao_salvar_frequencia)], horizontal_alignment=ft.CrossAxisAlignment.CENTER), padding=20)
 
         dropdown_turma_notas = ft.Dropdown(label="1. Turma", border_color=ROXO_FORTE, bgcolor=BRANCO, on_change=ao_mudar_turma_notas)
         dropdown_materia_notas = ft.Dropdown(label="2. Matéria", border_color=ROXO_FORTE, bgcolor=BRANCO)
@@ -536,7 +557,7 @@ def main(page: ft.Page):
         btn_gerar_pdf_boletim = ft.ElevatedButton("Gerar PDF do Boletim", bgcolor="red700", color=BRANCO, width=300, icon=ft.icons.PICTURE_AS_PDF, on_click=acao_gerar_pdf_boletim)
         tela_boletim = ft.Container(content=ft.Column([ft.Text("Boletins de Notas", size=24, weight=ft.FontWeight.BOLD, color=ROXO_FORTE), dropdown_aluno_boletim, lista_boletim_notas, ft.Divider(), btn_gerar_pdf_boletim], horizontal_alignment=ft.CrossAxisAlignment.CENTER), padding=20)
 
-        tela_config = ft.Container(content=ft.Column([ft.Text("Configurações do Sistema", size=24, weight=ft.FontWeight.BOLD, color=ROXO_FORTE), ft.Icon(ft.icons.SETTINGS, size=80, color=ROXO_CLARO), ft.Text("Versão Ouro Absoluta: Sem bugs de scroll!", color="black", weight=ft.FontWeight.BOLD), ft.ElevatedButton("Sincronizar Banco", icon=ft.icons.SYNC, bgcolor=ROXO_FORTE, color=BRANCO, width=300, on_click=lambda e: carregar_dados_gerais() or mostrar_mensagem("Banco Sincronizado com Sucesso!"))], horizontal_alignment=ft.CrossAxisAlignment.CENTER), padding=20)
+        tela_config = ft.Container(content=ft.Column([ft.Text("Configurações do Sistema", size=24, weight=ft.FontWeight.BOLD, color=ROXO_FORTE), ft.Icon(ft.icons.SETTINGS, size=80, color=ROXO_CLARO), ft.Text("App Versão Ouro: Máscaras + PDF Estável", color="black", weight=ft.FontWeight.BOLD), ft.ElevatedButton("Sincronizar Banco", icon=ft.icons.SYNC, bgcolor=ROXO_FORTE, color=BRANCO, width=300, on_click=lambda e: carregar_dados_gerais() or mostrar_mensagem("Sincronizado!"))], horizontal_alignment=ft.CrossAxisAlignment.CENTER), padding=20)
 
         # --- O SEGREDO DA NAVEGAÇÃO (SEM O BENDITO SCROLL NO CONTAINER) ---
         telas = {"turmas": tela_turmas, "alunos": tela_alunos, "materias": tela_materias, "chamada": tela_chamada, "notas": tela_notas, "relatorios": tela_relatorios, "boletim": tela_boletim, "config": tela_config}

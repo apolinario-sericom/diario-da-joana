@@ -36,12 +36,12 @@ jobs:
       - name: 📦 Instalando as peças da Joana
         run: pip install flet==0.25.2 requests fpdf
 
-      - name: 🚀 Construindo o Aplicativo (Modo Fofoqueiro)
-        run: flet build apk . --verbose
+      - name: 🚀 Construindo o Aplicativo (Sem frescura)
+        # Removi o ponto "." que estava dando erro de argumento
+        run: flet build apk --verbose
 
       - name: 📤 Salvando o APK Pronto!
         uses: actions/upload-artifact@v4
         with:
           name: Diario-da-Joana-APK
           path: build/apk/**/*.apk
-          

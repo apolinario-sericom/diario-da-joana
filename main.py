@@ -43,6 +43,7 @@ def main(page: ft.Page):
         page.theme_mode = ft.ThemeMode.LIGHT
         page.bgcolor = "#F3E5F5"
         page.padding = 0
+        page.scroll = ft.ScrollMode.AUTO
 
         ROXO_FORTE = "#4A148C"
         ROXO_CLARO = "#9C27B0"
@@ -53,7 +54,7 @@ def main(page: ft.Page):
             page.snack_bar.open = True
             page.update()
 
-        # --- MÁSCARAS EM TEMPO REAL (COMO MÁGICA) ---
+        # --- MÁSCARAS EM TEMPO REAL (MÁGICA PURA) ---
         def aplicar_mascara_data(e):
             v = re.sub(r'\D', '', e.control.value)
             if len(v) > 8: v = v[:8]
@@ -125,7 +126,7 @@ def main(page: ft.Page):
         picker_edit_aluno = ft.FilePicker(on_result=foto_edit_selecionada)
         page.overlay.extend([picker_joana, picker_aluno, picker_edit_aluno])
 
-        # --- GERADOR DE PDFs (SINTAXE FPDF2 BLINDADA) ---
+        # --- GERADOR DE PDFs (FPDF2) ---
         def gerar_pdf_relatorio(nome_aluno, texto_relatorio):
             try:
                 from fpdf import FPDF
@@ -485,7 +486,6 @@ def main(page: ft.Page):
                     lista_boletim_notas.controls.append(ft.Card(content=ft.Container(padding=10, content=ft.Column([ft.Text(nome_mat, weight=ft.FontWeight.BOLD, color=ROXO_FORTE, size=16), ft.Row([ft.Text(f"1º: {n['nota1']}"), ft.Text(f"2º: {n['nota2']}"), ft.Text(f"3º: {n['nota3']}"), ft.Text(f"4º: {n['nota4']}")], alignment=ft.MainAxisAlignment.SPACE_BETWEEN), ft.Text(f"Média: {n['media']}", weight=ft.FontWeight.BOLD, color="green" if float(n['media']) >= 6 else "red")]))))
             page.update()
 
-        # BOTÃO BOLETIM: Busca os dados frescos na hora do clique (Impede erros do PDF Fantasma)
         def acao_gerar_pdf_boletim(e):
             if not dropdown_aluno_boletim.value: return
             id_a = int(dropdown_aluno_boletim.value)
@@ -529,20 +529,19 @@ def main(page: ft.Page):
 
         dropdown_aluno_relatorio = ft.Dropdown(label="Selecione o Aluno", border_color=ROXO_FORTE, bgcolor=BRANCO, on_change=carregar_relatorio_existente)
         texto_relatorio = ft.TextField(label="Texto do Relatório", border_color=ROXO_FORTE, bgcolor=BRANCO, multiline=True, min_lines=5)
-        tela_relatorios = ft.Container(content=ft.Column([ft.Text("Relatórios", size=24, weight=ft.FontWeight.BOLD, color=ROXO_FORTE), dropdown_aluno_relatorio, texto_relatorio, ft.ElevatedButton("Salvar no Banco", bgcolor=ROXO_FORTE, color=BRANCO, width=300, on_click=acao_salvar_relatorio), ft.Divider(), ft.ElevatedButton("Gerar PDF", bgcolor="red700", color=BRANCO, width=300, icon=ft.icons.PICTURE_AS_PDF, on_click=acao_gerar_pdf_relatorio)], horizontal_alignment=ft.CrossAxisAlignment.CENTER), padding=20)
+        tela_relatorios = ft.Container(content=ft.Column([ft.Text("Relatórios Pedagógicos", size=24, weight=ft.FontWeight.BOLD, color=ROXO_FORTE), dropdown_aluno_relatorio, texto_relatorio, ft.ElevatedButton("Salvar no Banco", bgcolor=ROXO_FORTE, color=BRANCO, width=300, on_click=acao_salvar_relatorio), ft.Divider(), ft.ElevatedButton("Gerar PDF", bgcolor="red700", color=BRANCO, width=300, icon=ft.icons.PICTURE_AS_PDF, on_click=acao_gerar_pdf_relatorio)], horizontal_alignment=ft.CrossAxisAlignment.CENTER), padding=20)
 
         dropdown_aluno_boletim = ft.Dropdown(label="Selecione o Aluno", border_color=ROXO_FORTE, bgcolor=BRANCO, on_change=carregar_boletim_aluno)
         lista_boletim_notas = ft.Column(scroll=ft.ScrollMode.AUTO, height=300, spacing=10)
         btn_gerar_pdf_boletim = ft.ElevatedButton("Gerar PDF do Boletim", bgcolor="red700", color=BRANCO, width=300, icon=ft.icons.PICTURE_AS_PDF, on_click=acao_gerar_pdf_boletim)
         tela_boletim = ft.Container(content=ft.Column([ft.Text("Boletins de Notas", size=24, weight=ft.FontWeight.BOLD, color=ROXO_FORTE), dropdown_aluno_boletim, lista_boletim_notas, ft.Divider(), btn_gerar_pdf_boletim], horizontal_alignment=ft.CrossAxisAlignment.CENTER), padding=20)
 
-        tela_config = ft.Container(content=ft.Column([ft.Text("Configurações", size=24, weight=ft.FontWeight.BOLD, color=ROXO_FORTE), ft.Icon(ft.icons.SETTINGS, size=80, color=ROXO_CLARO), ft.Text("App Versão Ouro: Máscaras + PDF Estável", color="black", weight=ft.FontWeight.BOLD), ft.ElevatedButton("Sincronizar Banco", icon=ft.icons.SYNC, bgcolor=ROXO_FORTE, color=BRANCO, width=300, on_click=lambda e: carregar_dados_gerais() or mostrar_mensagem("Sincronizado!"))], horizontal_alignment=ft.CrossAxisAlignment.CENTER), padding=20)
+        tela_config = ft.Container(content=ft.Column([ft.Text("Configurações do Sistema", size=24, weight=ft.FontWeight.BOLD, color=ROXO_FORTE), ft.Icon(ft.icons.SETTINGS, size=80, color=ROXO_CLARO), ft.Text("Versão Ouro Absoluta: Sem bugs de scroll!", color="black", weight=ft.FontWeight.BOLD), ft.ElevatedButton("Sincronizar Banco", icon=ft.icons.SYNC, bgcolor=ROXO_FORTE, color=BRANCO, width=300, on_click=lambda e: carregar_dados_gerais() or mostrar_mensagem("Banco Sincronizado com Sucesso!"))], horizontal_alignment=ft.CrossAxisAlignment.CENTER), padding=20)
 
-        # --- O SEGREDO DA NAVEGAÇÃO RÁPIDA (SEM CONGELAR) ---
+        # --- O SEGREDO DA NAVEGAÇÃO (SEM O BENDITO SCROLL NO CONTAINER) ---
         telas = {"turmas": tela_turmas, "alunos": tela_alunos, "materias": tela_materias, "chamada": tela_chamada, "notas": tela_notas, "relatorios": tela_relatorios, "boletim": tela_boletim, "config": tela_config}
 
-        # O container que vai trocar o conteúdo de forma rápida e segura:
-        area_conteudo = ft.Container(expand=True, scroll=ft.ScrollMode.AUTO)
+        area_conteudo = ft.Container(expand=True)
 
         def abrir_tela(nome_tela):
             if nome_tela == "home":
@@ -550,8 +549,8 @@ def main(page: ft.Page):
             else:
                 area_conteudo.content = telas[nome_tela]
             
-            page.update()  # Troca a tela IMEDIATAMENTE (sem lag)
-            carregar_dados_gerais() # Busca os dados no fundo
+            page.update() 
+            carregar_dados_gerais() 
 
         def criar_atalho(icone, texto, acao, cor_fundo=BRANCO, cor_icone=ROXO_FORTE):
             return ft.Container(content=ft.Column([ft.Icon(name=icone, size=40, color=cor_icone), ft.Text(texto, size=16, weight=ft.FontWeight.BOLD, color=cor_icone)], alignment=ft.MainAxisAlignment.CENTER, horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=5), bgcolor=cor_fundo, width=150, height=120, border_radius=15, border=ft.border.all(1, ROXO_CLARO), shadow=ft.BoxShadow(spread_radius=1, blur_radius=5, color=ft.colors.BLACK12, offset=ft.Offset(0, 2)), ink=True, on_click=lambda e: abrir_tela(acao))
@@ -569,7 +568,6 @@ def main(page: ft.Page):
             ft.Row([criar_atalho(ft.icons.PICTURE_AS_PDF, "Relatórios", "relatorios"), criar_atalho(ft.icons.SETTINGS, "Config.", "config")], alignment=ft.MainAxisAlignment.CENTER),
         ], horizontal_alignment=ft.CrossAxisAlignment.CENTER))
 
-        # Inicializa a home
         area_conteudo.content = tela_home
 
         def mudar_aba_inferior(index):
@@ -585,13 +583,10 @@ def main(page: ft.Page):
 
         topo = ft.Container(content=ft.Text("App da Professora", color=BRANCO, weight=ft.FontWeight.BOLD, size=18), bgcolor=ROXO_FORTE, padding=15, alignment=ft.alignment.center)
         
-        # Junta tudo na página
         page.add(ft.Column([topo, area_conteudo, barra_navegacao], expand=True, spacing=0))
-        
-        # Carrega os dados na inicialização
         carregar_dados_gerais()
 
-    # TELA VERMELHA DE ALERTA: Mostra o bug pra gente consertar!
+    # TELA VERMELHA DE ALERTA: Continua aqui pro caso de mais algum BO!
     except Exception as e:
         erro_completo = traceback.format_exc()
         page.scroll = ft.ScrollMode.AUTO
